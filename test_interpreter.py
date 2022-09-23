@@ -1,4 +1,6 @@
-import unittest 
+from re import T
+import unittest
+from xmlrpc.client import TRANSPORT_ERROR 
 from .interpreter import Interpreter
 import interpreter
 
@@ -19,4 +21,16 @@ class InterpreterTest(unittest.TestCase):
         source = "n = divmod(a, 2)"
         interpreter = self.exec_interpreter(source, {'a': 11})
         self.assertEqual((5, 1), interpreter.get_local('n'))
-   
+
+    def test_if(self):
+        source = """
+if a > 10:
+    b = True
+else:
+    b = False""".strip()
+        interpreter = self.exec_interpreter(source, {"a": 11})
+        self.assertEqual(True, interpreter.get_local('b'))
+        
+        interpreter = self.exec_interpreter(source, {"a": 1})
+        self.assertEqual(False, interpreter.get_local('b'))
+

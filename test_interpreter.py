@@ -5,8 +5,8 @@ from .interpreter import Interpreter
 import interpreter
 
 class InterpreterTest(unittest.TestCase):
-    def exec_interpreter(self, source, local_vals = None, dump_code = False, trace_stack = False):
-        interpreter = Interpreter(source, local_vals = local_vals, dump_code = dump_code, trace_stack = trace_stack)
+    def exec_interpreter(self, source, local_vars = None, dump_code = False, trace_stack = False):
+        interpreter = Interpreter(source, local_vars = local_vars, dump_code = dump_code, trace_stack = trace_stack)
         interpreter.exec()
         return interpreter
 
@@ -28,9 +28,22 @@ if a > 10:
     b = True
 else:
     b = False""".strip()
+
         interpreter = self.exec_interpreter(source, {"a": 11})
         self.assertEqual(True, interpreter.get_local('b'))
         
         interpreter = self.exec_interpreter(source, {"a": 1})
         self.assertEqual(False, interpreter.get_local('b'))
 
+        
+    def test_define_fuc(self):
+            source = """
+def f(x, y):
+    return x + y + 1
+
+a = 1
+b = 2
+n = f(a, b)""".strip()
+
+            interpreter = self.exec_interpreter(source, {}, True, True)
+            self.assertEqual(4, interpreter.get_local('n'))

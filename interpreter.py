@@ -3,6 +3,7 @@ from cgitb import reset
 import dis
 import builtins
 from collections import ChainMap
+from unicodedata import name
 from unittest import result
 
 def dump_recursive(code):
@@ -12,7 +13,7 @@ def dump_recursive(code):
         print('co_consts:', x.co_consts)
         print('co_code:', x.co_code)
         print('co_varnames:', x.co_varnames)
-        dis.dis(x)
+        dis.dis(x, depth = 0)
 
     dump_code(code)
     for item in code.co_consts:
@@ -63,9 +64,9 @@ class Frame:
         return self._code.co_names[namei]
 
     def set_args(self, args):
-        print(args)
+        # print(args)
         for i, arg in enumerate(args):
-            print(i, arg)
+            # print(i, arg)
             name = self._code.co_varnames[i]
             self.set_local(name, arg)
 
@@ -81,6 +82,9 @@ class Frame:
             self._stack = self._stack[:-count]
             return result
         return []
+
+    def stack_top(self):
+        return self._stack[-1]
 
     def dump_stack(self, instruction):
          print(f'Stack after {instruction.opname}({instruction.offset}): {self._stack}')
@@ -125,6 +129,7 @@ class Frame:
     def exec_CALL_FUNCTION(self, argc):
         argc = self.stack_popn(argc)
         func = self._stack.pop(-1)
+        # print(argc, func)
         result = func(*argc)
         self.stack_push(result)
     
@@ -185,6 +190,44 @@ class Frame:
         name = self._code.co_varnames[varnum]
         value = self.get_local(name)
         self.stack_push(value)
+
+
+    def exec_BUILD_LIST(self, count):
+        value = self.stack_popn(count)
+        self.stack_push(value)
+
+    def exec_FOR_ITER(self, delta):
+        it = self.stack_top()
+        try:
+            value = next(it)
+            self.stack_push(value)
+        except StopIteration:
+            self.stack_pop()
+            #
+            target = self._instructions[self._next_instruction + 1].offset + delta
+            self.jump_by_offset(target)
+            return True
+    
+    def exec_STORE_FAST(self, var_num):
+        name = self._code.co_varnames[var_num]
+        value = self.stack_pop()
+        self.set_local(name, value)
+
+    def exec_LIST_APPEND(self, i):
+        value = self.stack_pop()
+        l = self._stack[-i]
+        assert(isinstance(l, list))
+        l.append(value)
+
+    def exec_JUMP_ABSOLUTE(self, target):
+        self.jump_by_offset(target)
+        return True
+
+    def exec_GET_ITER(self, _):
+        value = self.stack_pop()
+        it = iter(value)
+        self.stack_push(it)
+    
 
 class Interpreter:
     def __init__(self, source, local_vars = None, dump_code = False, trace_stack = False):

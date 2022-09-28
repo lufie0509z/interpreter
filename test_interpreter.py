@@ -47,3 +47,10 @@ n = f(a, b)""".strip()
 
             interpreter = self.exec_interpreter(source, {}, True, True)
             self.assertEqual(4, interpreter.get_local('n'))
+
+    def test_list_resolution(self):
+        source = """
+n = [x for x in range(a) if x > 5]
+        """.strip()
+        interpreter = self.exec_interpreter(source, {'a' : 10}, True, True)
+        self.assertEqual([6, 7, 8, 9], interpreter.get_local('n'))
